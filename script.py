@@ -141,7 +141,16 @@ def deviceBlock(path):
     except Exception as e:
         print ("\n", e)
         sys.exit()
-    
+
+def deviceMount(path):
+    print("Mounting the device at {} to /mnt ".format(path), end="")
+    try:
+        run(["mount", "-o", "ro", path, "/mnt"])
+        print("--> Mounted!")
+        return True
+    except Exception as e:
+        print ("\n", e)
+        sys.exit()
 
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
@@ -176,6 +185,9 @@ if __name__ == "__main__":
         print("Issue with Blocking {}".format(deviceDetected[0]))
         sys.exit()
     
+    deviceMountStatus = deviceMount(deviceDetected[0])
+    if not deviceMountStatus:
+        print("Issue with Mounting {}".format(deviceDetected[0]))
     # service_ops("stop", "colord")
 
 
