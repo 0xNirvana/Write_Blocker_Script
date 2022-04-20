@@ -3,6 +3,8 @@ from subprocess import *
 import os
 import sys
 import shutil
+from pyudev import Context, Monitor
+import re
 
 FORENSIC_READ_ONLY_FILE = "./udev/01-forensic-readonly.rules"
 TOOLS_DIRECTORY = "./tools"
@@ -68,9 +70,34 @@ def implementPatch():
         print (e)
         sys.exit()
 
+def usbDetection():
+    proc = Popen("blkid", stdout=PIPE, shell=True)
+    beforeInsertion = proc.communicate()[0].decode('utf-8')
+    count = 1
+    devices = []
+    beforeInsertion = beforeInsertion.splitlines()
+    for line in beforeInsertion:
+        if "LABEL" in line:
+            label = re.findall('LABEL=\"(.*?)\"', line)
+        else:
+            label = re.findall('(.*?)\:', line)
+        
+        if label:
+            devices.append(label[0])
+            print("{}: {}".format(count, label[0]))
+            count += 1
+        
+    confirmation = input("Enter the number of your device:\nIf your device is not listed then exit the script and reinsert your device after starting the script.")
+    confirmation = int(confirmation)
+    if confirmation <= count:
+        return devices[confirmation-1]
+    else:
+        return False
+
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
     print("P.S. Run this script only on Linux Machines")
+    print("Do not insert the Evidence device until instructed to do so!")
 
     if not os.geteuid() == 0:
         print("Run this script with sudo.")
@@ -87,6 +114,21 @@ if __name__ == "__main__":
         else:
             continue
     
-    
     service_ops("stop", "udisks2.service")
+    usbDetected = usbDetection()
+    if usbDetected:
+        print ("You have selected {} as your target device.".format(usbDetected))
+    else:
+        print("Invalid device choice. Exiting!")
+        sys.exit()
+    
     # service_ops("stop", "colord")
+
+
+'''
+REFERENCES
+1. https://www.reddit.com/r/learnpython/comments/4ijwob/python_code_to_detect_connected_devices/
+2. https://github.com/msuhanov/Linux-write-blocker
+3. https://linuxhint.com/list-usb-devices-linux/
+
+'''
