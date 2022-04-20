@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 import re
+import concurrent.futures
 
 FORENSIC_READ_ONLY_FILE = "./udev/01-forensic-readonly.rules"
 TOOLS_DIRECTORY = "./tools"
@@ -166,16 +167,34 @@ def deviceImageCreation(path, name):
         print ("\n", e)
         sys.exit()
 
-def hashMatch(path):
-    originalHash = Popen(["pv", path, "|", "md5sum"], stdout=PIPE, stderr=PIPE, shell=True)
-    imageHash = Popen(["pv", path, "|", "md5sum"], stdout=PIPE, stderr=PIPE, shell=True)
-    if originalHash == imageHash:
+def hashCalc(path):
+    print("Generating Hash for {}".format(path))
+    proc = Popen(["md5sum", path], stdout=PIPE, stderr=PIPE)
+    serviceStatus = proc.communicate()[0].decode("utf-8")
+    serviceStatus = serviceStatus.split()
+    return serviceStatus[0]
+
+def hashMatch(path, name):
+    paths = [path, "./{}.dd".format(name)]
+    hashes = []
+    print ("Hashes will be tested for\n1. {}\n2. {}".format(path, name))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for p in paths:
+            futures.append(executor.submit(hashCalc, p))
+        
+        for future in concurrent.futures.as_completed(futures):
+            hashes.append(future.result())
+
+    if hashes[0] == hashes[1]:
+        print("Hash is: {}".format(hashes[0]))
         return True
     else:
+        print("Hash Mismatch!\n{} -> {}\n{}.dd -> {}".format(path, hashes[0], name, hashes[1]))
         return False
 
 def deviceUnmount(path):
-    print("Unmounting device {} from /mnt/evidence.".format(path))
+    print("Unmounting device {} from /mnt/evidence.".format(path), end="")
     try:
         run(["umount", "/mnt/evidence"])
         print("--> Unmounted")
@@ -229,11 +248,11 @@ if __name__ == "__main__":
     # service_ops("stop", "colord")
 
 # NEED TO WORK ON THIS PART
-    # hashMatchResult = hashMatch(deviceDetected[0])
-    # if hashMatchResult:
-    #     print("Hashes matched!")
-    # else:
-    #     print("Hashes do not match!")
+    hashMatchResult = hashMatch(deviceDetected[0], deviceDetected[1])
+    if hashMatchResult:
+        print("Hashes matched!")
+    else:
+        print("Hashes do not match!")
 
     deviceUnmountStatus = deviceUnmount(deviceDetected[0])
     if not deviceUnmountStatus:
