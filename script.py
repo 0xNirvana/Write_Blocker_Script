@@ -75,24 +75,63 @@ def usbDetection():
     beforeInsertion = proc.communicate()[0].decode('utf-8')
     count = 1
     devices = []
+    # devices = {}
+    input("Insert your device now.\nPress any key after insertion.")
+    proc = Popen("blkid", stdout=PIPE, shell=True)
+    afterInsertion = proc.communicate()[0].decode('utf-8')
+
     beforeInsertion = beforeInsertion.splitlines()
-    for line in beforeInsertion:
-        if "LABEL" in line:
-            label = re.findall('LABEL=\"(.*?)\"', line)
-        else:
-            label = re.findall('(.*?)\:', line)
-        
-        if label:
-            devices.append(label[0])
-            print("{}: {}".format(count, label[0]))
-            count += 1
-        
-    confirmation = input("Enter the number of your device:\nIf your device is not listed then exit the script and reinsert your device after starting the script.")
-    confirmation = int(confirmation)
-    if confirmation <= count:
-        return devices[confirmation-1]
+    afterInsertion = afterInsertion.splitlines()
+    
+    for line in afterInsertion:
+        if line not in beforeInsertion:
+            if "LABEL" in line:
+                path = re.findall('(.*?)\:', line)[0]
+                label = re.findall('LABEL=\"(.*?)\"', line)[0]
+                devices.append([path, label])
+            else:
+                path = re.findall('(.*?)\:', line)[0]
+                # label = "NO LABEL"
+                devices.append([path, "No Label"])
+
+            if path:
+                # devices.append(label)
+                print("{}: {} -> {}".format(count, path, label))
+                count += 1
+    
+    if len(devices) == 0:
+        print ("""
+        No new device detected!
+        Please follow the steps mentioned below:
+        1. Remove the evidence device
+        2. Start the script again
+        3. Reinsert the evidence device only afteer prompted""")
     else:
-        return False
+        confirmation = input("Enter the index number of your device.")
+        confirmation = int(confirmation)
+        if confirmation <= count:
+            return devices[confirmation-1]
+        else:
+            return False
+    
+
+    # for line in beforeInsertion:
+    #     if "LABEL" in line:
+    #         label = re.findall('LABEL=\"(.*?)\"', line)
+    #     else:
+    #         label = re.findall('(.*?)\:', line)
+        
+    #     if label:
+    #         devices.append(label[0])
+    #         print("{}: {}".format(count, label[0]))
+    #         count += 1
+        
+    # confirmation = input("Enter the number of your device:\nIf your device is not listed then enter any other key and reinsert your device after starting the script.")
+    # confirmation = int(confirmation)
+    # if confirmation <= count:
+    #     return devices[confirmation-1]
+    # else:
+    #     return False
 
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
@@ -117,9 +156,9 @@ if __name__ == "__main__":
     service_ops("stop", "udisks2.service")
     usbDetected = usbDetection()
     if usbDetected:
-        print ("You have selected {} as your target device.".format(usbDetected))
+        print ("You have selected {} as your target device.".format(usbDetected[1]))
     else:
-        print("Invalid device choice. Exiting!")
+        print("Exiting!")
         sys.exit()
     
     # service_ops("stop", "colord")
