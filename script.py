@@ -143,10 +143,24 @@ def deviceBlock(path):
         sys.exit()
 
 def deviceMount(path):
-    print("Mounting the device at {} to /mnt ".format(path), end="")
+    print("Mounting the device at {} to /mnt/evidence ".format(path), end="")
     try:
-        run(["mount", "-o", "ro", path, "/mnt"])
+        if not os.path.exists("/mnt/evidence"):
+            os.makedirs("/mnt/evidence")
+
+        run(["mount", "-o", "ro", path, "/mnt/evidence"])
         print("--> Mounted!")
+        return True
+    except Exception as e:
+        print ("\n", e)
+        sys.exit()
+
+def deviceImageCreation(path, name):
+    print("Creating image for {}".format(path))
+    print("Image will be stored at: ./{}.dd".format(name))
+    try:
+        run(["dd", "if={}".format(path), "of=./{}.dd".format(name), "conv=noerror,sync", "status=progress"])
+        print("Image created and stored at: ./{}.dd".format(name))
         return True
     except Exception as e:
         print ("\n", e)
@@ -188,6 +202,12 @@ if __name__ == "__main__":
     deviceMountStatus = deviceMount(deviceDetected[0])
     if not deviceMountStatus:
         print("Issue with Mounting {}".format(deviceDetected[0]))
+        sys.exit()
+
+    deviceImageCreationStatus = deviceImageCreation(deviceDetected[0], deviceDetected[1])
+    if not deviceImageCreationStatus:
+        print("Issue with Image Creation for {}".format(deviceDetected[0]))
+        sys.exit()
     # service_ops("stop", "colord")
 
 
