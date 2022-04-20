@@ -69,7 +69,7 @@ def implementPatch():
         print (e)
         sys.exit()
 
-def usbDetection():
+def deviceDetection():
     proc = Popen("blkid", stdout=PIPE, shell=True)
     beforeInsertion = proc.communicate()[0].decode('utf-8')
     count = 1
@@ -132,15 +132,16 @@ def usbDetection():
     # else:
     #     return False
 
-def usbBlock(path):
+def deviceBlock(path):
     print("Enabling read only for block: {} ".format(path), end="")
     try:
         run(["blockdev", "--setro", path])
+        print("--> Enabled!")
+        return True  
     except Exception as e:
         print ("\n", e)
         sys.exit()
-    else:
-        print("--> Enabled!")    
+    
 
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
@@ -163,14 +164,18 @@ if __name__ == "__main__":
             continue
     
     service_ops("stop", "udisks2.service")
-    usbDetected = usbDetection()
-    if usbDetected:
-        print ("You have selected {} as your target device.".format(usbDetected[1]))
+    deviceDetected = deviceDetection()
+    if deviceDetected:
+        print ("You have selected {} as your target device.".format(deviceDetected[1]))
     else:
         print("Exiting!")
         sys.exit()
     
-    blockBlockStatus = usbBlock(usbDetected[0])
+    blockBlockStatus = deviceBlock(deviceDetected[0])
+    if not blockBlockStatus:
+        print("Issue with Blocking {}".format(deviceDetected[0]))
+        sys.exit()
+    
     # service_ops("stop", "colord")
 
 
