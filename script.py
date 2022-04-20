@@ -166,6 +166,24 @@ def deviceImageCreation(path, name):
         print ("\n", e)
         sys.exit()
 
+def hashMatch(path):
+    originalHash = Popen(["pv", path, "|", "md5sum"], stdout=PIPE, stderr=PIPE, shell=True)
+    imageHash = Popen(["pv", path, "|", "md5sum"], stdout=PIPE, stderr=PIPE, shell=True)
+    if originalHash == imageHash:
+        return True
+    else:
+        return False
+
+def deviceUnmount(path):
+    print("Unmounting device {} from /mnt/evidence.".format(path))
+    try:
+        run(["umount", "/mnt/evidence"])
+        print("--> Unmounted")
+        return True
+    except Exception as e:
+        print("\n", e)
+        sys.exit()
+
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
     print("P.S. Run this script only on Linux Machines")
@@ -210,7 +228,18 @@ if __name__ == "__main__":
         sys.exit()
     # service_ops("stop", "colord")
 
+# NEED TO WORK ON THIS PART
+    # hashMatchResult = hashMatch(deviceDetected[0])
+    # if hashMatchResult:
+    #     print("Hashes matched!")
+    # else:
+    #     print("Hashes do not match!")
 
+    deviceUnmountStatus = deviceUnmount(deviceDetected[0])
+    if not deviceUnmountStatus:
+        print("Device Unmount Failed!")
+        sys.exit()
+        
 '''
 REFERENCES
 1. https://www.reddit.com/r/learnpython/comments/4ijwob/python_code_to_detect_connected_devices/
