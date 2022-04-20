@@ -204,6 +204,7 @@ def deviceUnmount(path):
         sys.exit()
 
 def deviceUnplug(path):
+    input("Remove the device and press any key to continue.")
     proc = Popen("blkid", stdout=PIPE, shell=True)
     devices = proc.communicate()[0].decode('utf-8')
     if path not in devices:
