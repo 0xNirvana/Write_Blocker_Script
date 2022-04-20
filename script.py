@@ -3,7 +3,6 @@ from subprocess import *
 import os
 import sys
 import shutil
-from pyudev import Context, Monitor
 import re
 
 FORENSIC_READ_ONLY_FILE = "./udev/01-forensic-readonly.rules"
@@ -133,6 +132,16 @@ def usbDetection():
     # else:
     #     return False
 
+def usbBlock(path):
+    print("Enabling read only for block: {} ".format(path), end="")
+    try:
+        run(["blockdev", "--setro", path])
+    except Exception as e:
+        print ("\n", e)
+        sys.exit()
+    else:
+        print("--> Enabled!")    
+
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
     print("P.S. Run this script only on Linux Machines")
@@ -161,6 +170,7 @@ if __name__ == "__main__":
         print("Exiting!")
         sys.exit()
     
+    blockBlockStatus = usbBlock(usbDetected[0])
     # service_ops("stop", "colord")
 
 
