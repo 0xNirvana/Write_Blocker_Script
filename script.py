@@ -203,10 +203,18 @@ def deviceUnmount(path):
         print("\n", e)
         sys.exit()
 
+def deviceUnplug(path):
+    proc = Popen("blkid", stdout=PIPE, shell=True)
+    devices = proc.communicate()[0].decode('utf-8')
+    if path not in devices:
+        return True
+    else:
+        return False
+
 if __name__ == "__main__":
     print("### Write Blocker Script ###")
     print("P.S. Run this script only on Linux Machines")
-    print("Do not insert the Evidence device until instructed to do so!")
+    print("Do not insert the evidence device until instructed to do so!")
 
     if not os.geteuid() == 0:
         print("Run this script with sudo.")
@@ -245,7 +253,6 @@ if __name__ == "__main__":
     if not deviceImageCreationStatus:
         print("Issue with Image Creation for {}".format(deviceDetected[0]))
         sys.exit()
-    # service_ops("stop", "colord")
 
 # NEED TO WORK ON THIS PART
     hashMatchResult = hashMatch(deviceDetected[0], deviceDetected[1])
@@ -258,7 +265,16 @@ if __name__ == "__main__":
     if not deviceUnmountStatus:
         print("Device Unmount Failed!")
         sys.exit()
-        
+    
+    deviceUnplugStatus = deviceUnplug(deviceDetected[0]) 
+    if deviceUnplugStatus:
+        print("Device Removed Successfully!")
+    else:
+        print("Issue with device removal!")
+        sys.exit()
+    
+    service_ops("start", "udisks2.service")
+
 '''
 REFERENCES
 1. https://www.reddit.com/r/learnpython/comments/4ijwob/python_code_to_detect_connected_devices/
