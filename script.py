@@ -10,7 +10,7 @@ FORENSIC_READ_ONLY_FILE = "./udev/01-forensic-readonly.rules"
 TOOLS_DIRECTORY = "./tools"
 
 RULES_DST_PATH = "/etc/udev/rules.d"
-TOOLS_DST_PATH = "/usr/sbin/tools"
+TOOLS_DST_PATH = "/usr/sbin"
 
 """
 Module to perform actions on a given service using systemctl
@@ -26,9 +26,9 @@ def service_ops(action, service_name):
         check_output(implementCommand)
     except CalledProcessError as cpe:
         if (cpe.returncode == 5):
-            print(f"ERROR: Service name {service_name} does not exist!\n")
+            print(f"ERROR: Service name {service_name} does not exist!")
         elif (cpe.returncode == 4):
-            print(f"ERROR: Execute script with sudo privileges!\n")
+            print(f"ERROR: Execute script with sudo privileges!")
     else:
         statusCheckCommand = base + ["status"]
         statusCheckCommand = statusCheckCommand + [service_name]
@@ -213,67 +213,75 @@ def deviceUnplug(path):
         return False
 
 if __name__ == "__main__":
-    print("### Write Blocker Script ###")
-    print("P.S. Run this script only on Linux Machines")
-    print("Do not insert the evidence device until instructed to do so!")
-
     if not os.geteuid() == 0:
         print("Run this script with sudo.")
         sys.exit()
 
-    while True:
-        patchCheck = input("Have you implemented the kernel patch? Enter y/n:")
-        if patchCheck == "n" or patchCheck == "no" or patchCheck == "N":
-            implementPatch()
-            break
-        elif patchCheck == "y" or patchCheck == "yes" or patchCheck == "Y":
-            print("Awesome!")
-            break
-        else:
-            continue
-    
+    print("### Write Blocker Script ###")
+    print("P.S. Run this script only on Linux Machines")
+    print("Do not insert the evidence device until instructed to do so!")
+    print("If already inserted then remove it!")
+    input("Press enter key when you are ready!")
+    print("\n", end="")
+    implementPatch()
+
     service_ops("stop", "udisks2.service")
+    print("\n", end="")
+
     deviceDetected = deviceDetection()
     if deviceDetected:
-        print ("You have selected {} as your target device.".format(deviceDetected[1]))
+        print ("You have selected {} as your target device.\n".format(deviceDetected[1]))
     else:
-        print("Exiting!")
+        print("Exiting!\n")
         sys.exit()
     
     blockBlockStatus = deviceBlock(deviceDetected[0])
     if not blockBlockStatus:
         print("Issue with Blocking {}".format(deviceDetected[0]))
         sys.exit()
-    
+    print("\n", end="")
+
     deviceMountStatus = deviceMount(deviceDetected[0])
     if not deviceMountStatus:
         print("Issue with Mounting {}".format(deviceDetected[0]))
         sys.exit()
+    print("\n", end="")
 
-    deviceImageCreationStatus = deviceImageCreation(deviceDetected[0], deviceDetected[1])
-    if not deviceImageCreationStatus:
-        print("Issue with Image Creation for {}".format(deviceDetected[0]))
-        sys.exit()
+    createImage = input("Do you want to create an image? y/n: ")
+    if createImage == "y" or createImage == "yes" or createImage == "Y":
 
-# NEED TO WORK ON THIS PART
-    hashMatchResult = hashMatch(deviceDetected[0], deviceDetected[1])
-    if hashMatchResult:
-        print("Hashes matched!")
+        deviceImageCreationStatus = deviceImageCreation(deviceDetected[0], deviceDetected[1])
+        if not deviceImageCreationStatus:
+            print("Issue with Image Creation for {}".format(deviceDetected[0]))
+            sys.exit()
+        print("\n", end="")
+
+        hashMatchResult = hashMatch(deviceDetected[0], deviceDetected[1])
+        if hashMatchResult:
+            print("Hashes matched!")
+        else:
+            print("Hashes do not match!")
+        print("\n", end="")
+
     else:
-        print("Hashes do not match!")
+        print("Image creation and hash calculation skipped!")
+        input("Press any key when you want to unmount the device and enable automounting.")
+    print("\n", end="")
 
     deviceUnmountStatus = deviceUnmount(deviceDetected[0])
     if not deviceUnmountStatus:
         print("Device Unmount Failed!")
         sys.exit()
-    
+    print("\n", end="")
+
     deviceUnplugStatus = deviceUnplug(deviceDetected[0]) 
     if deviceUnplugStatus:
         print("Device Removed Successfully!")
     else:
         print("Issue with device removal!")
         sys.exit()
-    
+    print("\n", end="")
+
     service_ops("start", "udisks2.service")
 
 '''
