@@ -223,7 +223,6 @@ if __name__ == "__main__":
     print("If already inserted then remove it!")
     input("Press enter key when you are ready!")
     print("\n", end="")
-    implementPatch()
 
     service_ops("stop", "udisks2.service")
     print("\n", end="")
